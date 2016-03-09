@@ -214,7 +214,6 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
                     sqlDigest.metricColumns.add(col);
                 }
             }
-            logger.info("sqlDigest.aggregations:" + sqlDigest.aggregations);
         }
     }
 
