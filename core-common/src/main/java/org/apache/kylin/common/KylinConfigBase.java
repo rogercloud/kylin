@@ -396,21 +396,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public int getHBaseRegionCut(String capacity) {
-        String cut;
-        switch (capacity) {
-        case "SMALL":
-            cut = getOptional("kylin.hbase.region.cut.small", "5");
-            break;
-        case "MEDIUM":
-            cut = getOptional("kylin.hbase.region.cut.medium", "10");
-            break;
-        case "LARGE":
-            cut = getOptional("kylin.hbase.region.cut.large", "50");
-            break;
-        default:
-            throw new IllegalArgumentException("Capacity not recognized: " + capacity);
-        }
-
+        String cut = getOptional("kylin.hbase.region.cut", "10");
         return Integer.valueOf(cut);
     }
 
