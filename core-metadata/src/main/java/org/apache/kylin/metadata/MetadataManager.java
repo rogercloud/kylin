@@ -345,7 +345,6 @@ public class MetadataManager {
         if (t == null) {
             return null;
         }
-        t.init();
 
         extFilterMap.putLocal(t.getName(), t);
 
