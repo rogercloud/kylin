@@ -250,10 +250,10 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
             byte[] compressedAllRows;
             if (normalComplete.booleanValue()) {
                 allRows = outputStream.toByteArray();
-                compressedAllRows = CompressionUtils.compress(allRows);
             } else {
-                compressedAllRows = new byte[0];
+                allRows = new byte[0];
             }
+            compressedAllRows = CompressionUtils.compress(allRows);
 
 
             appendProfileInfo(sb, "compress done");
