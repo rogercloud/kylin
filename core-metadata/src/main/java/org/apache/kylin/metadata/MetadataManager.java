@@ -228,9 +228,6 @@ public class MetadataManager {
     }
 
     public void removeExternalFilter(String name) throws IOException {
-        if(name !=null ){
-            name = name.toLowerCase();
-        }
         String path = ExternalFilterDesc.concatResourcePath(name);
         getStore().deleteResource(path);
         extFilterMap.remove(name);
