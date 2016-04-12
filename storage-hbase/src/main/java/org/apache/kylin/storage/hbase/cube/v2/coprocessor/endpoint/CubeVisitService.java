@@ -216,7 +216,7 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
             }
 
             final MutableBoolean normalComplete = new MutableBoolean(true);
-            final long startTime = request.getStartTime();
+            final long startTime = this.serviceStartTime;//request.getStartTime();
             final long timeout = (long) (request.getTimeout() * 0.95);
             InnerScannerAsIterator cellListIterator = new InnerScannerAsIterator(innerScanner, normalComplete, startTime, timeout);
 
