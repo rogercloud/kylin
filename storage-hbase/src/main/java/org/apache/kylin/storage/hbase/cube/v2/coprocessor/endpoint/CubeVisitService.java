@@ -247,8 +247,14 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
             appendProfileInfo(sb, "agg done");
 
             //outputStream.close() is not necessary
-            allRows = outputStream.toByteArray();
-            byte[] compressedAllRows = CompressionUtils.compress(allRows);
+            byte[] compressedAllRows;
+            if (normalComplete.booleanValue()) {
+                allRows = outputStream.toByteArray();
+                compressedAllRows = CompressionUtils.compress(allRows);
+            } else {
+                compressedAllRows = new byte[0];
+            }
+
 
             appendProfileInfo(sb, "compress done");
 
