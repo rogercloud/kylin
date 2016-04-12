@@ -333,12 +333,12 @@ public class CubeHBaseEndpointRPC extends CubeHBaseRPC {
 
                             if (result.getValue().getStats().getNormalComplete() != 1) {
                                 abnormalFinish = true;
-                            }
-
-                            try {
-                                epResultItr.append(CompressionUtils.decompress(HBaseZeroCopyByteString.zeroCopyGetBytes(result.getValue().getCompressedRows())));
-                            } catch (IOException | DataFormatException e) {
-                                throw new RuntimeException(logHeader + "Error when decompressing", e);
+                            } else {
+                                try {
+                                    epResultItr.append(CompressionUtils.decompress(HBaseZeroCopyByteString.zeroCopyGetBytes(result.getValue().getCompressedRows())));
+                                } catch (IOException | DataFormatException e) {
+                                    throw new RuntimeException(logHeader + "Error when decompressing", e);
+                                }
                             }
                         }
 
