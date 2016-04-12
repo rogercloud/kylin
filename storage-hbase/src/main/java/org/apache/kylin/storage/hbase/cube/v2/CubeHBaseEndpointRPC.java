@@ -160,6 +160,12 @@ public class CubeHBaseEndpointRPC extends CubeHBaseRPC {
                 throw new RuntimeException("error when waiting queue", e);
             }
         }
+
+
+        public long getTimeout() {
+            return timeout;
+        }
+
     }
 
     static class EndpointResultsAsGTScanner implements IGTScanner {
@@ -310,6 +316,9 @@ public class CubeHBaseEndpointRPC extends CubeHBaseRPC {
                         }
                         builder.setRowkeyPreambleSize(cubeSeg.getRowKeyPreambleSize());
                         builder.setBehavior(toggle);
+                        builder.setStartTime(System.currentTimeMillis());
+                        builder.setTimeout(epResultItr.getTimeout());
+
 
                         Map<byte[], CubeVisitProtos.CubeVisitResponse> results;
                         try {
@@ -321,6 +330,11 @@ public class CubeHBaseEndpointRPC extends CubeHBaseRPC {
                         for (Map.Entry<byte[], CubeVisitProtos.CubeVisitResponse> result : results.entrySet()) {
                             totalScannedCount.addAndGet(result.getValue().getStats().getScannedRowCount());
                             logger.info("<sub-thread for GTScanRequest " + Integer.toHexString(System.identityHashCode(scanRequests.get(i))) + "> " + getStatsString(result));
+
+                            if (result.getValue().getStats().getNormalComplete() != 1) {
+                                throw new RuntimeException("The coprocessor thread stopped itself due to scan timeout.");
+                            }
+
                             try {
                                 epResultItr.append(CompressionUtils.decompress(HBaseZeroCopyByteString.zeroCopyGetBytes(result.getValue().getCompressedRows())));
                             } catch (IOException | DataFormatException e) {
@@ -344,6 +358,8 @@ public class CubeHBaseEndpointRPC extends CubeHBaseRPC {
         sb.append("Time elapsed in EP: ").append(stats.getServiceEndTime() - stats.getServiceStartTime()).append("(ms). ");
         sb.append("Server CPU usage: ").append(stats.getSystemCpuLoad()).append(", server physical mem left: ").append(stats.getFreePhysicalMemorySize()).append(", server swap mem left:").append(stats.getFreeSwapSpaceSize()).append(".");
         sb.append("Etc message: ").append(stats.getEtcMsg()).append(".");
+        sb.append("Normal Complete: ").append(stats.getNormalComplete() == 1).append(".");
+
         return sb.toString();
 
     }

@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
@@ -78,14 +79,22 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
     private long serviceStartTime;
 
     static class InnerScannerAsIterator implements CellListIterator {
+
         private RegionScanner regionScanner;
+        private MutableBoolean normalComplete;
+        private long startTime;
+        private long timeout;
+        private int counter = 0;
+
         private List<Cell> nextOne = Lists.newArrayList();
         private List<Cell> ret = Lists.newArrayList();
-
         private boolean hasMore;
 
-        public InnerScannerAsIterator(RegionScanner regionScanner) {
+        public InnerScannerAsIterator(RegionScanner regionScanner, MutableBoolean normalComplete, long startTime, long timeout) {
             this.regionScanner = regionScanner;
+            this.normalComplete = normalComplete;
+            this.startTime = startTime;
+            this.timeout = timeout;
 
             try {
                 hasMore = regionScanner.nextRaw(nextOne);
@@ -96,6 +105,13 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
 
         @Override
         public boolean hasNext() {
+            if (counter++ % 1000 == 1) {
+                if (System.currentTimeMillis() - startTime > timeout) {
+                    normalComplete.setValue(false);
+                    return false;
+                }
+            }
+
             return !nextOne.isEmpty();
         }
 
@@ -138,8 +154,11 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
         Bytes.putBytes(rawScan.endKey, 0, regionStartKey, 0, shardLength);
     }
 
-    private void appendProfileInfo(StringBuilder sb) {
-        sb.append(System.currentTimeMillis() - this.serviceStartTime);
+    private void appendProfileInfo(StringBuilder sb, String info) {
+        if (info != null) {
+            sb.append(info);
+        }
+        sb.append("@" + (System.currentTimeMillis() - this.serviceStartTime));
         sb.append(",");
     }
 
@@ -161,6 +180,8 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
             final GTScanRequest scanReq = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(HBaseZeroCopyByteString.zeroCopyGetBytes(request.getGtScanRequest())));
             final RawScan hbaseRawScan = RawScan.serializer.deserialize(ByteBuffer.wrap(HBaseZeroCopyByteString.zeroCopyGetBytes(request.getHbaseRawScan())));
 
+            appendProfileInfo(sb, "start latency: " + (this.serviceStartTime - request.getStartTime()));
+
             MassInTupleFilter.VALUE_PROVIDER_FACTORY = new MassInValueProviderFactoryImpl(new MassInValueProviderFactoryImpl.DimEncAware() {
                 @Override
                 public DimensionEncoding getDimEnc(TblColRef col) {
@@ -180,7 +201,7 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
 
             Scan scan = CubeHBaseRPC.buildScan(hbaseRawScan);
 
-            appendProfileInfo(sb);
+            appendProfileInfo(sb, "scan built");
 
             innerScanner = region.getScanner(scan);
             CoprocessorBehavior behavior = CoprocessorBehavior.valueOf(request.getBehavior());
@@ -191,10 +212,14 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
                 while (innerScanner.nextRaw(temp)) {
                     counter++;
                 }
-                sb.append("Scanned " + counter + " rows in " + (System.currentTimeMillis() - serviceStartTime) + ",");
+                appendProfileInfo(sb, "scanned " + counter);
             }
 
-            InnerScannerAsIterator cellListIterator = new InnerScannerAsIterator(innerScanner);
+            final MutableBoolean normalComplete = new MutableBoolean(true);
+            final long startTime = request.getStartTime();
+            final long timeout = (long) (request.getTimeout() * 0.95);
+            InnerScannerAsIterator cellListIterator = new InnerScannerAsIterator(innerScanner, normalComplete, startTime, timeout);
+
             if (behavior.ordinal() < CoprocessorBehavior.SCAN_FILTER_AGGR_CHECKMEM.ordinal()) {
                 scanReq.setAggrCacheGB(0); // disable mem check if so told
             }
@@ -218,21 +243,21 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
                 outputStream.write(buffer.array(), buffer.arrayOffset() - buffer.position(), buffer.remaining());
                 finalRowCount++;
             }
-
-            appendProfileInfo(sb);
+            finalScanner.close();
+            appendProfileInfo(sb, "agg done");
 
             //outputStream.close() is not necessary
             allRows = outputStream.toByteArray();
             byte[] compressedAllRows = CompressionUtils.compress(allRows);
 
-            appendProfileInfo(sb);
+            appendProfileInfo(sb, "compress done");
 
             OperatingSystemMXBean operatingSystemMXBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
             double systemCpuLoad = operatingSystemMXBean.getSystemCpuLoad();
             double freePhysicalMemorySize = operatingSystemMXBean.getFreePhysicalMemorySize();
             double freeSwapSpaceSize = operatingSystemMXBean.getFreeSwapSpaceSize();
 
-            appendProfileInfo(sb);
+            appendProfileInfo(sb, "server stats done");
 
             CubeVisitProtos.CubeVisitResponse.Builder responseBuilder = CubeVisitProtos.CubeVisitResponse.newBuilder();
             done.run(responseBuilder.//
@@ -247,7 +272,7 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
                             setFreeSwapSpaceSize(freeSwapSpaceSize).//
                             setHostname(InetAddress.getLocalHost().getHostName()).// 
                             setEtcMsg(sb.toString()).//
-                            build())
+                            setNormalComplete(normalComplete.booleanValue() ? 1 : 0).build())
                     .//
                     build());
 
