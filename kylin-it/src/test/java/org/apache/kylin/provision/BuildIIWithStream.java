@@ -93,14 +93,19 @@ public class BuildIIWithStream {
     private KylinConfig kylinConfig;
 
     public static void main(String[] args) throws Exception {
-        beforeClass();
-        BuildIIWithStream buildCubeWithEngine = new BuildIIWithStream();
-        buildCubeWithEngine.before();
-        buildCubeWithEngine.build();
-        logger.info("Build is done");
-        afterClass();
-        logger.info("Going to exit");
-        System.exit(0);
+        try {
+            beforeClass();
+            BuildIIWithStream buildCubeWithEngine = new BuildIIWithStream();
+            buildCubeWithEngine.before();
+            buildCubeWithEngine.build();
+            logger.info("Build is done");
+            afterClass();
+            logger.info("Going to exit");
+            System.exit(0);
+        } catch (Exception e) {
+            logger.error("error", e);
+            System.exit(1);
+        }
     }
 
     public static void beforeClass() throws Exception {

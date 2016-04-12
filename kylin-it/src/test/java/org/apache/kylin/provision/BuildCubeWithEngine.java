@@ -76,15 +76,20 @@ public class BuildCubeWithEngine {
     private static final Log logger = LogFactory.getLog(BuildCubeWithEngine.class);
 
     public static void main(String[] args) throws Exception {
-        beforeClass();
+        try {
+            beforeClass();
 
-        BuildCubeWithEngine buildCubeWithEngine = new BuildCubeWithEngine();
-        buildCubeWithEngine.before();
-        buildCubeWithEngine.build();
-        logger.info("Build is done");
-        afterClass();
-        logger.info("Going to exit");
-        System.exit(0);
+            BuildCubeWithEngine buildCubeWithEngine = new BuildCubeWithEngine();
+            buildCubeWithEngine.before();
+            buildCubeWithEngine.build();
+            logger.info("Build is done");
+            afterClass();
+            logger.info("Going to exit");
+            System.exit(0);
+        } catch (Exception e) {
+            logger.error("error", e);
+            System.exit(1);
+        }
     }
 
     public static void beforeClass() throws Exception {
