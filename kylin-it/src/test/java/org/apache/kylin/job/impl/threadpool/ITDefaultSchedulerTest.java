@@ -38,10 +38,12 @@ import org.apache.kylin.job.SucceedTestExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  */
+@Ignore
 public class ITDefaultSchedulerTest extends BaseSchedulerTest {
 
     @Test
