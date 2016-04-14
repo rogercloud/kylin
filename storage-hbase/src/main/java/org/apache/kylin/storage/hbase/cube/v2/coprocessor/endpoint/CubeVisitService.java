@@ -48,6 +48,7 @@ import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStore;
 import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.realization.IRealizationConstants;
 import org.apache.kylin.storage.hbase.common.coprocessor.CoprocessorBehavior;
 import org.apache.kylin.storage.hbase.cube.v2.CellListIterator;
 import org.apache.kylin.storage.hbase.cube.v2.CubeHBaseRPC;
@@ -170,12 +171,14 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
 
         StringBuilder sb = new StringBuilder();
         byte[] allRows;
+        String debugGitTag = "";
 
         try {
             this.serviceStartTime = System.currentTimeMillis();
 
             region = env.getRegion();
             region.startRegionOperation();
+            debugGitTag = region.getTableDesc().getValue(IRealizationConstants.HTableGitTag);
 
             final GTScanRequest scanReq = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(HBaseZeroCopyByteString.zeroCopyGetBytes(request.getGtScanRequest())));
             final RawScan hbaseRawScan = RawScan.serializer.deserialize(ByteBuffer.wrap(HBaseZeroCopyByteString.zeroCopyGetBytes(request.getHbaseRawScan())));
@@ -255,7 +258,6 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
             }
             compressedAllRows = CompressionUtils.compress(allRows);
 
-
             appendProfileInfo(sb, "compress done");
 
             OperatingSystemMXBean operatingSystemMXBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
@@ -264,6 +266,8 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
             double freeSwapSpaceSize = operatingSystemMXBean.getFreeSwapSpaceSize();
 
             appendProfileInfo(sb, "server stats done");
+
+            sb.append(" debugGitTag:" + debugGitTag);
 
             CubeVisitProtos.CubeVisitResponse.Builder responseBuilder = CubeVisitProtos.CubeVisitResponse.newBuilder();
             done.run(responseBuilder.//
