@@ -18,9 +18,19 @@
 
 package org.apache.kylin.gridtable;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.ImmutableBitSet;
@@ -35,13 +45,15 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class GTScanRangePlanner {
 
     private static final Logger logger = LoggerFactory.getLogger(GTScanRangePlanner.class);
 
-    private static final int MAX_HBASE_FUZZY_KEYS = 100;
+    private int maxFuzzyKey = 200;
 
     final private GTInfo info;
     final private Pair<ByteArray, ByteArray> segmentStartAndEnd;
@@ -70,6 +82,8 @@ public class GTScanRangePlanner {
         this.rangeEndComparator = getRangeEndComparator(comp);
         //start key GTRecord compare to stop key GTRecord
         this.rangeStartEndComparator = getRangeStartEndComparator(comp);
+
+        maxFuzzyKey = KylinConfig.getInstanceFromEnv().getQueryScanFuzzyKeyMax();
     }
 
     // return empty list meaning filter is always false
@@ -116,11 +130,11 @@ public class GTScanRangePlanner {
             if (partitionColRef != null && range.column.equals(partitionColRef)) {
                 if (rangeStartEndComparator.comparator.compare(segmentStartAndEnd.getFirst(), range.end) <= 0 //
                         && (rangeStartEndComparator.comparator.compare(range.begin, segmentStartAndEnd.getSecond()) < 0 //
-                        || rangeStartEndComparator.comparator.compare(range.begin, segmentStartAndEnd.getSecond()) == 0 //
-                        && (range.op == FilterOperatorEnum.EQ || range.op == FilterOperatorEnum.LTE || range.op == FilterOperatorEnum.GTE || range.op == FilterOperatorEnum.IN))) {
+                                || rangeStartEndComparator.comparator.compare(range.begin, segmentStartAndEnd.getSecond()) == 0 //
+                                        && (range.op == FilterOperatorEnum.EQ || range.op == FilterOperatorEnum.LTE || range.op == FilterOperatorEnum.GTE || range.op == FilterOperatorEnum.IN))) {
                     //segment range is [Closed,Open), but segmentStartAndEnd.getSecond() might be rounded, so use <= when has equals in condition. 
                 } else {
-                    logger.debug("Pre-check partition col filter failed, partitionColRef {}, segment start {}, segment end {}, range begin {}, range end {}",//
+                    logger.debug("Pre-check partition col filter failed, partitionColRef {}, segment start {}, segment end {}, range begin {}, range end {}", //
                             new Object[] { partitionColRef, makeReadable(segmentStartAndEnd.getFirst()), makeReadable(segmentStartAndEnd.getSecond()), makeReadable(range.begin), makeReadable(range.end) });
                     return null;
                 }
@@ -154,9 +168,8 @@ public class GTScanRangePlanner {
             logger.info("The execution of this query will not use fuzzy key");
             return result;
         }
-        
 
-        List<Map<Integer, ByteArray>> fuzzyValueCombinations = FuzzyValueCombination.calculate(fuzzyValueSet, MAX_HBASE_FUZZY_KEYS);
+        List<Map<Integer, ByteArray>> fuzzyValueCombinations = FuzzyValueCombination.calculate(fuzzyValueSet, maxFuzzyKey);
 
         for (Map<Integer, ByteArray> fuzzyValue : fuzzyValueCombinations) {
 
@@ -332,7 +345,7 @@ public class GTScanRangePlanner {
 
         // if any range is non-fuzzy, then all fuzzy keys must be cleared
         // also too many fuzzy keys will slow down HBase scan
-        if (hasNonFuzzyRange || newFuzzyKeys.size() > MAX_HBASE_FUZZY_KEYS) {
+        if (hasNonFuzzyRange || newFuzzyKeys.size() > maxFuzzyKey) {
             newFuzzyKeys.clear();
         }
 

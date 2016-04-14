@@ -480,6 +480,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.query.ignore_unknown_function", "false"));
     }
 
+    public int getQueryScanFuzzyKeyMax() {
+        return Integer.parseInt(this.getOptional("kylin.query.scan.fuzzykey.max","200"));
+    }
+
     public int getHBaseKeyValueSize() {
         return Integer.parseInt(this.getOptional("kylin.hbase.client.keyvalue.maxsize", "10485760"));
     }
