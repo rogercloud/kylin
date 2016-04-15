@@ -288,7 +288,8 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
 
         } catch (IOException ioe) {
             logger.error(ioe.toString());
-            ResponseConverter.setControllerException(controller, ioe);
+            IOException wrapped = new IOException("Error in coprocessor " + debugGitTag, ioe);
+            ResponseConverter.setControllerException(controller, wrapped);
         } finally {
             IOUtils.closeQuietly(innerScanner);
             if (region != null) {
