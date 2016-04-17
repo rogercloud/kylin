@@ -42,10 +42,23 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
     private ColumnDesc[] columns;
     @JsonProperty("source_type")
     private int sourceType = ISourceAware.ID_HIVE;
+    @JsonProperty("source_table_type")
+    private boolean sourceTableHiveViewFlag =  false;
+    @JsonProperty("hive_view__table_name_prefix")
+    private String hiveViewIntermediateTableNamePrefix = "kylin_intermediate_";
 
     private DatabaseDesc database = new DatabaseDesc();
 
     private String identity = null;
+
+    public TableDesc() {
+    }
+
+    public TableDesc(TableDesc other) {
+        this.name = other.getName();
+        this.columns = other.getColumns();
+        this.database.setName(other.getDatabase());
+    }
 
     public ColumnDesc findColumnByName(String name) {
         //ignore the db name and table name if exists
@@ -164,6 +177,18 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
         }
     }
 
+    public void setSourceTableHiveViewFlag(boolean sourceTableHiveViewFlag) {
+        this.sourceTableHiveViewFlag = sourceTableHiveViewFlag;
+    }
+
+    public boolean isSourceTableHiveView(){
+        return sourceTableHiveViewFlag;
+    }
+
+    public String getHiveViewIntermediateTableName() {
+        return hiveViewIntermediateTableNamePrefix + "_" + database.getName() + "_" + name;
+    }
+
     @Override
     public String toString() {
         return "TableDesc [database=" + getDatabase() + " name=" + name + "]";
@@ -183,5 +208,13 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
 
     public void setSourceType(int sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public String getHiveViewIntermediateTableNamePrefix() {
+        return hiveViewIntermediateTableNamePrefix;
+    }
+
+    public void setHiveViewIntermediateTableNamePrefix(String hiveViewIntermediateTableNamePrefix) {
+        this.hiveViewIntermediateTableNamePrefix = hiveViewIntermediateTableNamePrefix;
     }
 }
