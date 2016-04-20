@@ -21,6 +21,7 @@ package org.apache.kylin.metadata.model;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
@@ -31,6 +32,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  */
@@ -41,6 +43,16 @@ public class FunctionDesc {
     public static final String FUNC_MIN = "MIN";
     public static final String FUNC_MAX = "MAX";
     public static final String FUNC_COUNT = "COUNT";
+    public static final String FUNC_COUNT_DISTINCT = "COUNT_DISTINCT";
+    public static final Set<String> BUILT_IN_AGGREGATIONS = Sets.newHashSet();
+
+    static {
+        BUILT_IN_AGGREGATIONS.add(FUNC_COUNT);
+        BUILT_IN_AGGREGATIONS.add(FUNC_MAX);
+        BUILT_IN_AGGREGATIONS.add(FUNC_MIN);
+        BUILT_IN_AGGREGATIONS.add(FUNC_SUM);
+        BUILT_IN_AGGREGATIONS.add(FUNC_COUNT_DISTINCT);
+    }
 
     public static final String PARAMETER_TYPE_CONSTANT = "constant";
     public static final String PARAMETER_TYPE_COLUMN = "column";
@@ -91,21 +103,39 @@ public class FunctionDesc {
         throw new IllegalStateException("Column is not found in any table from the model: " + columnName);
     }
 
-    public MeasureType<?> getMeasureType() {
-        if (isDimensionAsMetric)
-            return null;
-
-        if (measureType == null) {
+    private void reInitMeasureType() {
+        if (isDimensionAsMetric && isCountDistinct()) {
+            // create DimCountDis
+            measureType = MeasureTypeFactory.createNoRewriteFieldsMeasureType(getExpression(), getReturnDataType());
+        } else {
             measureType = MeasureTypeFactory.create(getExpression(), getReturnDataType());
         }
+    }
+
+    public MeasureType<?> getMeasureType() {
+        if (isDimensionAsMetric && !isCountDistinct()) {
+            return null;
+        }
+
+        if (measureType == null) {
+            reInitMeasureType();
+        }
+
         return measureType;
     }
 
     public boolean needRewrite() {
-        if (isDimensionAsMetric)
+        if (getMeasureType() == null)
             return false;
 
         return getMeasureType().needRewrite();
+    }
+
+    public boolean needRewriteField() {
+        if (!needRewrite())
+            return false;
+
+        return getMeasureType().needRewriteField();
     }
 
     public String getRewriteFieldName() {
@@ -153,6 +183,10 @@ public class FunctionDesc {
         return FUNC_COUNT.equalsIgnoreCase(expression);
     }
 
+    public boolean isCountDistinct() {
+        return FUNC_COUNT_DISTINCT.equalsIgnoreCase(expression);
+    }
+
     /**
      * Get Full Expression such as sum(amount), count(1), count(*)...
      */
@@ -172,6 +206,9 @@ public class FunctionDesc {
 
     public void setDimensionAsMetric(boolean isDimensionAsMetric) {
         this.isDimensionAsMetric = isDimensionAsMetric;
+        if (measureType != null) {
+            reInitMeasureType();
+        }
     }
 
     public String getExpression() {
