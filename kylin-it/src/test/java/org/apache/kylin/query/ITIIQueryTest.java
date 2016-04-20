@@ -89,4 +89,10 @@ public class ITIIQueryTest extends ITKylinQueryTest {
     @Ignore("Skip Precisely Distinct Count Queries for II")
     public void testPreciselyDistinctCountQuery() {
     }
+
+    @Override
+    @Test
+    @Ignore("Skip Dimension Distinct Count Queries for II")
+    public void testDimDistinctCountQuery() {
+    }
 }
