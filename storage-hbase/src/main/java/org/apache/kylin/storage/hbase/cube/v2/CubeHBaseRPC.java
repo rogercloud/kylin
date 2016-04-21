@@ -117,8 +117,8 @@ public abstract class CubeHBaseRPC {
         KylinConfig config = cubeSeg.getCubeDesc().getConfig();
         int hbaseCaching = config.getHBaseScanCacheRows();
         int hbaseMaxResultSize = config.getHBaseScanMaxResultSize();
-        if (isMemoryHungry(selectedColBlocks))
-            hbaseCaching /= 10;
+//        if (isMemoryHungry(selectedColBlocks))
+//            hbaseCaching /= 10;
 
         return new RawScan(start, end, selectedColumns, hbaseFuzzyKeys, hbaseCaching, hbaseMaxResultSize);
     }
@@ -155,8 +155,8 @@ public abstract class CubeHBaseRPC {
         KylinConfig config = cubeSeg.getCubeDesc().getConfig();
         int hbaseCaching = config.getHBaseScanCacheRows();
         int hbaseMaxResultSize = config.getHBaseScanMaxResultSize();
-        if (isMemoryHungry(selectedColBlocks))
-            hbaseCaching /= 10;
+//        if (isMemoryHungry(selectedColBlocks))
+//            hbaseCaching /= 10;
 
         for (short i = 0; i < startKeys.size(); ++i) {
             ret.add(new RawScan(startKeys.get(i), endKeys.get(i), selectedColumns, hbaseFuzzyKeys, hbaseCaching, hbaseMaxResultSize));
