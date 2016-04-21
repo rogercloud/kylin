@@ -106,12 +106,19 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
 
         @Override
         public boolean hasNext() {
-            if (counter++ % 1000 == 1) {
+            if (counter % 1000 == 1) {
                 if (System.currentTimeMillis() - startTime > timeout) {
                     normalComplete.setValue(false);
+                    logger.error("scanner aborted because timeout");
                     return false;
                 }
             }
+
+            if (counter % 100000 == 1) {
+                logger.info("Scanned " + counter + " rows.");
+            }
+
+            counter++;
 
             return !nextOne.isEmpty();
         }
@@ -218,10 +225,10 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
                 appendProfileInfo(sb, "scanned " + counter);
             }
 
-            final MutableBoolean normalComplete = new MutableBoolean(true);
-            final long startTime = this.serviceStartTime;//request.getStartTime();
-            final long timeout = (long) (request.getTimeout() * 0.95);
-            InnerScannerAsIterator cellListIterator = new InnerScannerAsIterator(innerScanner, normalComplete, startTime, timeout);
+            final MutableBoolean scanNormalComplete = new MutableBoolean(true);
+            final long startTime = this.serviceStartTime;
+            final long timeout = request.getTimeout();
+            InnerScannerAsIterator cellListIterator = new InnerScannerAsIterator(innerScanner, scanNormalComplete, startTime, timeout);
 
             if (behavior.ordinal() < CoprocessorBehavior.SCAN_FILTER_AGGR_CHECKMEM.ordinal()) {
                 scanReq.setAggrCacheGB(0); // disable mem check if so told
@@ -239,6 +246,20 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream(RowConstants.ROWVALUE_BUFFER_SIZE);//ByteArrayOutputStream will auto grow
             int finalRowCount = 0;
             for (GTRecord oneRecord : finalScanner) {
+
+                if (!scanNormalComplete.booleanValue()) {
+                    logger.error("aggregate iterator aborted because input iterator aborts");
+                    break;
+                }
+
+                if (finalRowCount % 1000 == 1) {
+                    if (System.currentTimeMillis() - startTime > timeout) {
+                        logger.error("aggregate iterator aborted because timeout");
+                        break;
+                    }
+                }
+
+                
                 buffer.clear();
                 oneRecord.exportColumns(scanReq.getColumns(), buffer);
                 buffer.flip();
@@ -251,7 +272,7 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
 
             //outputStream.close() is not necessary
             byte[] compressedAllRows;
-            if (normalComplete.booleanValue()) {
+            if (scanNormalComplete.booleanValue()) {
                 allRows = outputStream.toByteArray();
             } else {
                 allRows = new byte[0];
@@ -282,7 +303,7 @@ public class CubeVisitService extends CubeVisitProtos.CubeVisitService implement
                             setFreeSwapSpaceSize(freeSwapSpaceSize).//
                             setHostname(InetAddress.getLocalHost().getHostName()).// 
                             setEtcMsg(sb.toString()).//
-                            setNormalComplete(normalComplete.booleanValue() ? 1 : 0).build())
+                            setNormalComplete(scanNormalComplete.booleanValue() ? 1 : 0).build())
                     .//
                     build());
 

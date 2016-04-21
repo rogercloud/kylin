@@ -122,6 +122,8 @@ public class CubeHBaseEndpointRPC extends CubeHBaseRPC {
             this.queue = new ArrayBlockingQueue<byte[]>(expectedSize);
             this.timeout = HadoopUtil.getCurrentConfiguration().getInt(HConstants.HBASE_RPC_TIMEOUT_KEY, HConstants.DEFAULT_HBASE_RPC_TIMEOUT);
             this.timeout *= KylinConfig.getInstanceFromEnv().getCubeVisitTimeoutTimes();
+
+            this.timeout *= 1.1;//allow for some delay 
             logger.info("Timeout for ExpectedSizeIterator is " + this.timeout);
         }
 
