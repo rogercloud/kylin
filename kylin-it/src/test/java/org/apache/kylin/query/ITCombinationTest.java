@@ -21,18 +21,13 @@ package org.apache.kylin.query;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
 
-import org.apache.kylin.metadata.realization.RealizationType;
-import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.storage.hbase.HBaseStorage;
 import org.apache.kylin.storage.hbase.cube.v1.coprocessor.observer.ObserverEnabler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import com.google.common.collect.Maps;
 
 /**
  */
@@ -41,12 +36,6 @@ public class ITCombinationTest extends ITKylinQueryTest {
 
     @BeforeClass
     public static void setUp() throws SQLException {
-        Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        priorities.put(RealizationType.INVERTED_INDEX, 2);
-        priorities.put(RealizationType.HYBRID, 0);
-        priorities.put(RealizationType.CUBE, 0);
-        Candidate.setPriorities(priorities);
-
         printInfo("setUp in ITCombinationTest");
     }
 
@@ -55,7 +44,6 @@ public class ITCombinationTest extends ITKylinQueryTest {
         printInfo("tearDown in ITCombinationTest");
         clean();
         HBaseStorage.overwriteStorageQuery = null;
-        Candidate.restorePriorities();
     }
 
     /**

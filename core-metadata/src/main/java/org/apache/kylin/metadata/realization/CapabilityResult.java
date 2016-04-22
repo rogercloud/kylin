@@ -53,7 +53,7 @@ public class CapabilityResult {
 
         @Override
         public double suggestCostMultiplier() {
-            return 1;
+            return 1.0;
         }
         
         public FunctionDesc getMeasureFunction() {

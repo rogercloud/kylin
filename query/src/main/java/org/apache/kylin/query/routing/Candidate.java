@@ -29,23 +29,18 @@ import com.google.common.collect.Maps;
 
 public class Candidate implements Comparable<Candidate> {
 
-    static Map<RealizationType, Integer> DEFAULT_PRIORITIES = Maps.newHashMap();
-    static Map<RealizationType, Integer> PRIORITIES = DEFAULT_PRIORITIES;
+    static final Map<RealizationType, Integer> PRIORITIES = Maps.newHashMap();
 
     static {
-        DEFAULT_PRIORITIES.put(RealizationType.HYBRID, 0);
-        DEFAULT_PRIORITIES.put(RealizationType.CUBE, 1);
-        DEFAULT_PRIORITIES.put(RealizationType.INVERTED_INDEX, 2);
+        PRIORITIES.put(RealizationType.HYBRID, 0);
+        PRIORITIES.put(RealizationType.CUBE, 1);
+        PRIORITIES.put(RealizationType.INVERTED_INDEX, 2);
     }
 
     /** for test only */
     public static void setPriorities(Map<RealizationType, Integer> priorities) {
-        PRIORITIES = priorities;
-    }
-
-    /** for test only */
-    public static void restorePriorities() {
-        PRIORITIES = DEFAULT_PRIORITIES;
+        PRIORITIES.clear();
+        PRIORITIES.putAll(priorities);
     }
 
     // ============================================================================
@@ -92,7 +87,7 @@ public class Candidate implements Comparable<Candidate> {
         if (comp != 0) {
             return comp;
         }
-
+        
         return 0;
     }
 
