@@ -496,14 +496,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.valueOf(this.getOptional("kylin.query.storage.visit.scanrange.max", "1000000"));
     }
 
-    public int getHBaseKeyValueSize() {
-        return Integer.parseInt(this.getOptional("kylin.hbase.client.keyvalue.maxsize", "10485760"));
-    }
-
     public int getHBaseScanCacheRows() {
         return Integer.parseInt(this.getOptional("kylin.hbase.scan.cache_rows", "1024"));
     }
-
+    
     public boolean isGrowingDictEnabled() {
         return Boolean.parseBoolean(this.getOptional("kylin.dict.growing.enabled", "false"));
     }

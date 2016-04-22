@@ -88,6 +88,10 @@ public class HBaseResourceStore extends ResourceStore {
     private void createHTableIfNeeded(String tableName) throws IOException {
         HBaseConnection.createHTableIfNeeded(getConnection(), tableName, FAMILY);
     }
+    
+    public static int getHBaseKeyValueSize() {
+        return Integer.parseInt(HBaseConnection.getCurrentHBaseConfiguration().get("hbase.client.keyvalue.maxsize", "10485760"));
+    }
 
     private String getAllInOneTableName() {
         return tableNameBase;
@@ -341,7 +345,7 @@ public class HBaseResourceStore extends ResourceStore {
     }
 
     private Put buildPut(String resPath, long ts, byte[] row, byte[] content, HTableInterface table) throws IOException {
-        int kvSizeLimit = this.kylinConfig.getHBaseKeyValueSize();
+        int kvSizeLimit = this.getHBaseKeyValueSize();
         if (content.length > kvSizeLimit) {
             writeLargeCellToHdfs(resPath, content, table);
             content = BytesUtil.EMPTY_BYTE_ARRAY;

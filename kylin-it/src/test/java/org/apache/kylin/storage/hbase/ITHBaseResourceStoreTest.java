@@ -58,7 +58,7 @@ public class ITHBaseResourceStoreTest extends HBaseMetadataTestCase {
         String largeContent = "THIS_IS_A_LARGE_CELL";
         StringEntity content = new StringEntity(largeContent);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        int origSize = config.getHBaseKeyValueSize();
+        int origSize = HBaseResourceStore.getHBaseKeyValueSize();
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
 
         try {
